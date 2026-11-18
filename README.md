@@ -1,264 +1,349 @@
-# Student Office Management System — Avantika University
+<div align="center">
 
-> **Academic Demonstration Notice:** All student records, enrollment numbers, fee ledgers, examination results, documents, requests, and credentials in this repository are **100% fictional**. Access control, authentication, and persistence run locally in the browser for demonstration purposes only.
+# 🎓 Student Office Management System
 
-A centralised academic portal built with **React**, **TypeScript**, **Tailwind CSS**, and **React Router** to bring together student records, fee balances and receipts, published examination results, document verification tracking, and administrative requests in a single role-scoped web application.
+### A Centralized Portal for Student Services and University Administration
 
----
+<p>
+  <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React">
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white" alt="Prisma">
+  <img src="https://img.shields.io/badge/SQLite-Database-003B57?logo=sqlite&logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/Project-Academic-orange" alt="Academic Project">
+</p>
 
-## Table of Contents
+**Simplifying student services through a modern, role-based web application.**
 
-- [Overview](#overview)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-- [Demo Accounts](#demo-accounts)
-- [Roles & Least-Privilege Permissions](#roles--least-privilege-permissions)
-- [Portal Capabilities & Phase Roadmap](#portal-capabilities--phase-roadmap)
-- [Domain Rules & Seed Data](#domain-rules--seed-data)
-- [Security & Audit Controls](#security--audit-controls)
-- [Design System & Accessibility](#design-system--accessibility)
-- [Project Structure](#project-structure)
+</div>
 
 ---
 
-## Overview
+## 📌 About the Project
 
-The **Student Office Management System** replaces fragmented email threads, physical office visits, and separate spreadsheets with two dedicated, permission-isolated portals:
+The **Student Office Management System (SOMS)** is a web-based application designed to streamline student services and university administrative operations through a centralized digital platform.
 
-1. **Student Portal (`/student`)** — Self-service visibility into enrollment details, verified fee balances, published semester SGPA/CGPA, document attention alerts, notifications, and FAQs.
-2. **Administrative Staff Portal (`/staff`)** — Least-privilege operational workspace scoped to four distinct administrative groups (`STUDENT_OFFICE`, `FINANCE`, `EXAMINATION`, and `ACADEMIC`), with no unrestricted Super Admin role.
+The system provides separate interfaces for students and administrative staff, enabling users to access relevant information according to their roles and permissions.
 
-All data operations route through a typed asynchronous in-memory database layer (`src/db/db.ts`) persisted to `localStorage` (`avu_soms_db_v1`), with every access check enforced through one central `auth` + `permissions` boundary (`src/auth/auth.ts`, `src/auth/permissions.ts`).
+Built using modern web technologies, this project establishes the foundation for digitizing academic administration, improving accessibility, and reducing dependence on manual processes.
 
----
+> **Project Status:** Prototype in active development. Some modules are implemented, while others remain planned or partially implemented.
 
-## Tech Stack
+## 🎯 Objectives
 
-| Layer | Technology |
-| --- | --- |
-| Framework | React 19 + TypeScript |
-| Routing | React Router DOM v7 (`BrowserRouter`) |
-| Styling | Tailwind CSS v4 (`@tailwindcss/vite`) |
-| Icons | Lucide React |
-| Build Tool | Vite 8 |
-| Persistence | Typed async in-memory store backed by `localStorage` |
-| Unit Testing | Node.js built-in `node:test` + `node:assert/strict` via `tsx` |
+- Centralize student information and administrative services.
+- Provide secure authentication and role-based access control.
+- Simplify access to student profiles and notifications.
+- Establish a foundation for digital fee, examination, and document workflows.
+- Improve the accessibility and organization of university services.
+- Build a scalable foundation for future academic management features.
 
----
+## ✨ Key Features
 
-## Getting Started
+### 👨‍🎓 Student Portal
+- Student login and authentication.
+- Personalized student dashboard.
+- Student profile and information views.
+- Notifications and help section.
+- Role-restricted access to student services.
+
+### 🏢 Administrative Staff Portal
+- Dedicated staff dashboard.
+- Role-based access permissions.
+- Student search functionality.
+- Separate administrative roles for Student Office, Finance, Examination, and Academic departments.
+- Access-controlled administrative interfaces.
+
+### 🔐 Authentication and Security
+- Password hashing.
+- Server-side session management.
+- HTTP-only session cookies.
+- Role-based authorization checks.
+- Input validation and login rate limiting.
+- Audit-event support and security headers.
+
+### 🗄️ Database and Backend
+- Prisma ORM for database management.
+- SQLite for local development.
+- Structured database models and relationships.
+- Demo data seeding for testing.
+- API routes and server-side application logic.
+
+### 📸 Screenshots
+
+### Landing Page
+
+![SOMS Landing Page](src/screenshots/landing-page.png)
+
+### Student Dashboard
+
+![Student Dashboard](src/screenshots/student-dashboard.png)
+
+### Administrative Staff Dashboard
+
+![Staff Dashboard](src/screenshots/staff-dashboard.png)
+
+## 🛠️ Tech Stack
+
+| Technology | Purpose |
+|---|---|
+| Next.js | Full-stack React framework |
+| React | User interface development |
+| TypeScript | Type-safe application development |
+| Tailwind CSS | Styling and responsive UI |
+| Prisma ORM | Database access and schema management |
+| SQLite | Local development database |
+| Zod | Input validation |
+| bcryptjs | Password hashing |
+| Lucide React | Icons |
+
+## 👥 User Roles
+
+The system is designed around different user roles with separate access permissions.
+
+| Role | Primary Responsibility |
+|---|---|
+| Student | Access personal information, dashboard, and notifications |
+| Student Office | Student administration and service workflows |
+| Finance | Fee-related administrative operations |
+| Examination | Examination and result-related operations |
+| Academic | Academic information and related workflows |
+
+Access to individual features depends on the permissions implemented for each role.
+
+## 🚀 Getting Started
+
+Follow these instructions to run the project locally.
 
 ### Prerequisites
 
-- **Node.js** 20+ and **npm**
+Install the following software:
 
-### Installation & Local Development
+- [Node.js](https://nodejs.org/)
+- [Git](https://git-scm.com/)
+- [Visual Studio Code](https://code.visualstudio.com/) (recommended)
+
+npm is included with Node.js.
+
+### 1. Clone the Repository
+
+Replace `YOUR-USERNAME` with your GitHub username.
 
 ```bash
-# 1. Install dependencies
-npm install
+git clone https://github.com/Dhawalhatiya/student-office-management-system.git
+```
 
-# 2. Start the development server on http://localhost:3000
+Navigate to the project directory:
+
+```bash
+cd student-office-management-system
+```
+
+If the application is inside a subfolder, navigate into that folder before continuing.
+
+**Run all subsequent commands from the directory containing `package.json`.**
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Environment Variables
+
+Create a local `.env` file from the example configuration.
+
+**Windows PowerShell:**
+
+```powershell
+Copy-Item .env.example .env
+```
+
+**macOS / Linux:**
+
+```bash
+cp .env.example .env
+```
+
+Review the environment configuration and use the appropriate local development settings.
+
+Do not upload `.env` or any file containing actual secrets to GitHub.
+
+### 4. Set Up the Database
+
+Run the following command to apply the Prisma schema:
+
+```bash
+npm run db:push
+```
+
+This prepares the database structure for the application.
+
+### 5. Insert Demo Data
+
+```bash
+npm run db:seed
+```
+
+This command inserts fictional sample data for local testing.
+
+**Warning:** The seed script clears existing application records before inserting demo data. Do not run it against a database containing information you need to preserve.
+
+### 6. Start the Development Server
+
+```bash
 npm run dev
 ```
 
-### Verification & Build Commands
+Open your browser and navigate to:
 
-```bash
-# Run pure logic, RBAC, rate-limiting, and seed unit tests
-npx tsx --test src/logic.test.ts
+**http://localhost:3000**
 
-# TypeScript type check
-npm run lint
+The application should now be accessible locally.
 
-# Production build (outputs to dist/)
-npm run build
+Keep the terminal running while using the application. Press `Ctrl + C` to stop the development server.
 
-# Preview production build
-npm run preview
-```
+## 🔑 Demo Login Credentials
 
-> **Note:** To reset the simulated browser database back to its initial fictional seed state, clear `avu_soms_db_v1` and `avu_soms_session_v1` from `localStorage` in browser DevTools and reload the page.
+The following credentials are intended for local demonstration with the seeded database.
 
----
+| User Role | Email | Password |
+|---|---|---|
+| Student | `student.demo@example.com` | `DemoStudent123!` |
+| Student Office | `staff.demo@example.com` | `DemoStaff123!` |
+| Finance | `finance.demo@example.com` | `DemoStaff123!` |
+| Examination | `exam.demo@example.com` | `DemoStaff123!` |
+| Academic | `academic.demo@example.com` | `DemoStaff123!` |
 
-## Demo Accounts
+**Security Notice:** These are demonstration credentials, not production credentials. Do not use them for a real deployment.
 
-These fictional accounts are available on the `/login` page with one-click **Fill** buttons for testing and evaluation only:
-
-| Role / Group | Name | Email | Password | Highlights |
-| --- | --- | --- | --- | --- |
-| Student | Aarav Mehta | `student.demo@example.com` | `DemoStudent123!` | `AVU-DEMO-24-CSE-001`, B.Tech CSE, Batch 2024, Sem 5 |
-| Student Office | Ritu Kapoor | `staff.demo@example.com` | `DemoStaff123!` | Full student office, document, request & audit read access |
-| Finance | Karan Malhotra | `finance.demo@example.com` | `DemoStaff123!` | Fee ledger, requests read, reports & AI assistant |
-| Examination | Neha Iyer | `exam.demo@example.com` | `DemoStaff123!` | Results write/publish, requests read & reports |
-| Academic | Anil Verma | `academic.demo@example.com` | `DemoStaff123!` | Results read, scholarships read, requests & reports |
-
-> **Portal Routing Rule:** Choosing **Student login** or **Staff login** on the landing page only opens `/login?portal=student|staff` with contextual framing. Your destination portal and permissions always come strictly from the signed-in account.
-
----
-
-## Roles & Least-Privilege Permissions
-
-Only **two roles** exist in the system: `STUDENT` and `STAFF`. There is **no Super Admin** role.
-
-### Student Role (`STUDENT`)
-- Strictly scoped to the authenticated student's own `studentId`.
-- Cannot read another student's records or navigate to `/staff/*` (automatically redirected to `/student`).
-
-### Staff Groups (`STAFF`)
-
-| Permission | `STUDENT_OFFICE` | `FINANCE` | `EXAMINATION` | `ACADEMIC` |
-| --- | :---: | :---: | :---: | :---: |
-| `students.read` | Yes | Yes | Yes | Yes |
-| `students.write` | Yes | — | — | — |
-| `fees.read` | Yes | Yes | — | — |
-| `fees.write` | — | Yes | — | — |
-| `results.read` | Yes | — | Yes | Yes |
-| `results.write` | — | — | Yes | — |
-| `results.publish` | — | — | Yes | — |
-| `requests.read` | Yes | Yes | Yes | Yes |
-| `requests.manage` | Yes | — | — | — |
-| `documents.review` | Yes | — | — | — |
-| `scholarships.read` | Yes | — | — | Yes |
-| `scholarships.manage` | Yes | — | — | — |
-| `reports.export` | Yes | Yes | Yes | Yes |
-| `ai.assistant` | Yes | Yes | — | — |
-| `audit.read` | Yes | — | — | — |
-
-### Route Access Behaviour
-- Staff navigating to `/student/*` are redirected to `/staff`.
-- Staff navigating to a `/staff/*` route outside their group's permissions (for example, Finance opening `/staff/results` or Examination opening `/staff/fees`) are shown the **Access denied** screen (`"You do not have access to this area. This attempt has been recorded."`) and an `ACCESS_DENIED` audit log entry is written.
-
----
-
-## Portal Capabilities & Phase Roadmap
-
-### Public Routes
-- **`/` (Landing Page)** — Hero with fictional sample request timeline (`REQ-2026-0003`), two-column benefits summary, Student/Staff portal entry cards, privacy notice, and demo disclaimer footer.
-- **`/login`** — Validated sign-in form, rate limiting, and development demo account quick-fill list.
-
-### Student Portal (`/student/*`)
-| Section | Route | Status | Details |
-| --- | --- | --- | --- |
-| Dashboard | `/student` | Built | Enrollment summary, fee balance & status, latest published SGPA/CGPA, open requests, document attention banner, quick actions, recent notifications |
-| My Profile | `/student/profile` | Built | Read-only academic & personal record with correction request note |
-| Notifications | `/student/notifications` | Built | All/Unread filters, gold unread indicators, mark-as-read actions |
-| Help and FAQs | `/student/faqs` | Built | Accessible accordion covering profile, fees, results, documents & requests |
-| Fees and Receipts | `/student/fees` | Planned (Phase 2) | Itemised ledger, payment breakdown, receipt downloads |
-| Examination Results | `/student/results` | Planned (Phase 2) | Semester grade cards and SGPA/CGPA breakdowns |
-| My Requests | `/student/requests` | Planned (Phase 2) | Ticket queue, threaded replies, new request submission form |
-| My Documents | `/student/documents` | Planned (Phase 3) | Verification status checklist and replacement uploads |
-| Scholarships | `/student/scholarships` | Planned (Phase 3) | Eligibility requirements and application status |
-
-### Staff Portal (`/staff/*`)
-| Section | Route | Required Permission | Status |
-| --- | --- | --- | --- |
-| Dashboard | `/staff` | Authenticated Staff | Built (metrics & widgets filtered per permission) |
-| Student Search | `/staff/search` | `students.read` | Built (enrollment no. / name search, 64-char limit, max 50 rows) |
-| Notifications | `/staff/notifications` | Authenticated Staff | Built |
-| Settings | `/staff/settings` | Authenticated Staff | Built (staff profile, group, granted permissions, no-Super-Admin notice) |
-| Access Denied | `/staff/access-denied` | Authenticated Staff | Built |
-| Student Records | `/staff/students` | `students.write` | Planned (Phase 2) |
-| Fees and Receipts | `/staff/fees` | `fees.read` | Planned (Phase 2) |
-| Results | `/staff/results` | `results.read` | Planned (Phase 2) |
-| Requests | `/staff/requests` | `requests.read` | Planned (Phase 2) |
-| Documents | `/staff/documents` | `documents.review` | Planned (Phase 3) |
-| Scholarships | `/staff/scholarships` | `scholarships.read` | Planned (Phase 3) |
-| Reports and Exports | `/staff/reports` | `reports.export` | Planned (Phase 3) |
-| AI Data Assistant | `/staff/ai-assistant` | `ai.assistant` | Planned (Phase 4) |
-
----
-
-## Domain Rules & Seed Data
-
-- **Fictional Seed Corpus**:
-  - **3 Departments**: CSE, ECE, School of Management.
-  - **4 Programmes**: B.Tech CSE, B.Tech ECE, BBA, MBA.
-  - **4 Academic Years**: `2023-24` to `2026-27` (`2026-27` active).
-  - **37 Fictional Students** across batches `2023`–`2026` with unique enrollment numbers (`AVU-DEMO-YY-PROG-NNN`) and computed semester `(2026 - batch) * 2 + 1`.
-- **Fee Calculation Rule**:
-  - Whole rupees formatted using `en-IN` (`₹1,45,000`).
-  - Fee status (`PAID`, `PARTIAL`, `UNPAID`) is derived **strictly from `VERIFIED` payments**. `PENDING` or `REJECTED` payments never reduce the student's payable balance.
-- **Result Visibility & Grading**:
-  - Grades (`O`, `A+`, `A`, `B+`, `B`, `C`, `F`) are computed from marks; SGPA and CGPA are credit-weighted averages.
-  - Result statuses are `DRAFT`, `UNDER_REVIEW`, `APPROVED`, and `PUBLISHED`. Students can **only** view `PUBLISHED` results (for example, Aarav Mehta's Semester 5 `DRAFT` result is completely hidden in the Student Portal).
-- **Formatting**:
-  - Dates formatted consistently as `15 Nov 2026`.
-  - Status badges use sentence case (`Waiting for student`, `Under review`, `Replacement required`) with semantic green, amber, red, blue, and grey styling.
-
----
-
-## Security & Audit Controls
-
-- **Password Storage**: Passwords are stored exclusively as salted two-round SHA-256 hashes (`src/utils/crypto.ts`) and never stored in plain text in the database or audit logs.
-- **Generic Authentication Errors**: Unknown email addresses and incorrect passwords both return `"Email or password is incorrect."` to prevent account enumeration.
-- **Rate Limiting**: 5 failed sign-in attempts per email within a 15-minute window lock further attempts with `"Too many sign-in attempts. Try again in about N minutes."`.
-- **Input Safety**: Staff student search trims and validates queries to a maximum of 64 characters and renders all results strictly as plain text.
-- **Audit Log Events**: Automatically records `LOGIN_SUCCESS`, `LOGIN_FAILURE`, `LOGIN_RATE_LIMITED`, `LOGOUT`, and `ACCESS_DENIED` events (visible on the Staff Dashboard only to staff with `audit.read`).
-
----
-
-## Design System & Accessibility
-
-- **Palette**: Deep green sidebar (`#0e3623`), primary green (`#185a39`), light green tints (`#eef6f0` / `#d9ebde`), page canvas (`#f8faf7`), primary ink (`#17221c`), muted text (`#5a6a61`), hairline borders (`#dbe4de`), and restrained gold accent (`#b88a2e`) for unread indicators and attention banners.
-- **Typography**: Editorial serif headings (`Iowan Old Style`, `Palatino`, `Georgia`) paired with system sans-serif body prose and `tabular-nums` for aligned financial and academic metrics.
-- **Responsive Layout & A11y**: Desktop sidebar with active white pill indicator, mobile top bar with slide-over navigation drawer tested down to `390px` width, skip-to-content link, `aria-current="page"`, explicit form `<label>`s, visible `focus-visible` rings, and `prefers-reduced-motion` support.
-
----
-
-## Project Structure
+## 📂 Project Structure
 
 ```text
-├── index.html
-├── metadata.json
+student-office-management-system/
+├── prisma/
+│   ├── schema.prisma
+│   └── seed.ts
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── login/
+│   │   ├── student/
+│   │   ├── staff/
+│   │   ├── actions.ts
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   ├── lib/
+│   └── middleware.ts
+├── tests/
+├── docs/
+├── .env.example
+├── .gitignore
 ├── package.json
-├── vite.config.ts
-└── src/
-    ├── App.tsx                       # Router configuration & portal routes
-    ├── index.css                     # Tailwind CSS v4 & typography/motion rules
-    ├── logic.test.ts                 # Node unit test suite (node:test)
-    ├── auth/
-    │   ├── auth.ts                   # Sign-in, rate limiting, session hydration & audit hooks
-    │   └── permissions.ts            # Central staff-group RBAC matrix & route guards
-    ├── components/
-    │   ├── DemoFooter.tsx            # Avantika University & fictional demo disclaimer
-    │   ├── PlannedPhasePanel.tsx     # Honest Phase N placeholder view
-    │   ├── PortalLayout.tsx          # Sidebar, mobile drawer, topbar search & sign out
-    │   ├── RouteGuards.tsx           # StudentGuard & StaffGuard with ACCESS_DENIED logging
-    │   └── StatusBadge.tsx           # Semantic sentence-case pill badges
-    ├── context/
-    │   └── AuthContext.tsx           # React auth state & unread notification count sync
-    ├── data/
-    │   └── seed.ts                   # Deterministic fictional seed dataset (37 students)
-    ├── db/
-    │   ├── db.ts                     # Typed async query API scoped by auth & permissions
-    │   └── storage.ts                # In-memory cache + localStorage persistence
-    ├── pages/
-    │   ├── LandingPage.tsx           # Public university overview & sample timeline
-    │   ├── LoginPage.tsx             # Sign-in form, validation & demo account list
-    │   ├── staff/
-    │   │   ├── StaffAccessDenied.tsx
-    │   │   ├── StaffDashboard.tsx
-    │   │   ├── StaffNotifications.tsx
-    │   │   ├── StaffPlannedSections.tsx
-    │   │   ├── StaffSettings.tsx
-    │   │   └── StaffStudentSearch.tsx
-    │   └── student/
-    │       ├── StudentDashboard.tsx
-    │       ├── StudentFaqs.tsx
-    │       ├── StudentNotifications.tsx
-    │       ├── StudentPlannedSections.tsx
-    │       └── StudentProfile.tsx
-    ├── types/
-    │   └── domain.ts                 # Full TypeScript domain schema
-    └── utils/
-        ├── calculations.ts           # Fee derivation, SGPA/CGPA, grading & validation
-        ├── crypto.ts                 # Pure TypeScript SHA-256 password hashing
-        └── format.ts                 # INR currency, dates & status badge formatting
+└── README.md
 ```
+
+*The exact structure may vary depending on the current version of the project.*
+
+## 📊 Implementation Status
+
+| Module | Status |
+|---|---|
+| Landing Page | Implemented |
+| Login and Authentication | Implemented |
+| Session Management | Implemented |
+| Student Dashboard | Implemented |
+| Student Profile | Implemented |
+| Notifications | Implemented |
+| Staff Dashboard | Implemented |
+| Role-Based Access Control | Implemented |
+| Student Search | Implemented |
+| Fee Management | Planned / Placeholder |
+| Result Management | Planned / Placeholder |
+| Document Management | Planned / Placeholder |
+| Scholarship Management | Planned / Placeholder |
+| Student Request Workflows | Planned / Placeholder |
+| Reports and Exports | Planned / Placeholder |
+| AI Data Assistant | Planned / Placeholder |
+
+The project is under development. Planned features may not yet be available for practical use.
+
+## 💻 Available Commands
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the development server |
+| `npm run build` | Build the application for production |
+| `npm start` | Start the built application |
+| `npm run db:push` | Apply the database schema |
+| `npm run db:seed` | Insert demo data |
+| `npm run db:reset` | Reset and reseed the database |
+| `npm test` | Run the test suite |
+| `npm run typecheck` | Run TypeScript type checking |
+| `npm run test:http` | Run HTTP tests against a running server |
+
+**Caution:** `npm run db:reset` is destructive and can erase existing database records.
+
+## 🔒 Security Considerations
+
+The project includes foundational security mechanisms, such as password hashing, server-side sessions, permission checks, input validation, and login rate limiting.
+
+Before using the system in a real university environment, additional work is required, including:
+
+- Production-grade environment configuration.
+- HTTPS and secure deployment settings.
+- Comprehensive security testing.
+- Database backup and recovery procedures. 
+- Appropriate privacy and data-retention policies.
+- Protection of confidential student and financial information.
+- Review of authorisation rules and audit logging.
+
+The current prototype should use fictional data only.
+
+## 🗺️ Future Enhancements
+
+The following features are potential areas for future development:
+
+- Complete student record management.
+- Online fee tracking and payment verification.
+- Examination result management and publication.
+- Digital document submission and verification.
+- Scholarship application and administration.
+- Student requests and complaint tracking.
+- Administrative reports and data exports.
+- Email and in-app notifications.
+- AI-assisted data analysis and administrative insights.
+- Improved mobile responsiveness and accessibility.
+
+These enhancements represent future development goals rather than completed functionality.
+
+## 🤝 Contributing
+
+Contributions, suggestions, and constructive feedback are welcome.
+
+If you would like to contribute:
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Make your changes.
+4. Test the updated functionality.
+5. Submit a pull request describing your changes.
+
+Please avoid committing credentials, environment files, local databases, or personal information.
+
+## 📄 License
+
+No license has been specified for this project yet. Unless a license is added, the default copyright rules apply and reuse or redistribution is not automatically permitted.
 
 ---
 
-**Avantika University** · Project Design  
-*Demo application — all data is fictional. Access rules run in the browser for demonstration only.*
+<div align="center">
+
+**Student Office Management System**
+
+* Digitising Student Services. Simplifying Administration.*
+
+Developed as an academic software project.
+
+</div>
