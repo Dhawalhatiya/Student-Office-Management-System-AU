@@ -5,6 +5,7 @@ import { hasPermission } from '../../auth/permissions';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
 import { db, type StudentSearchRow } from '../../db/db';
+import { formatReadableFirestoreError } from '../../firebase/errors';
 import { MAX_SEARCH_LENGTH, sanitizeSearchQuery } from '../../utils/calculations';
 
 export function StaffStudentSearch() {
@@ -45,7 +46,7 @@ export function StaffStudentSearch() {
         setLoadError(null);
       }
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Unable to search students.');
+      setLoadError(formatReadableFirestoreError(err, 'Unable to search students.'));
     } finally {
       setLoading(false);
     }

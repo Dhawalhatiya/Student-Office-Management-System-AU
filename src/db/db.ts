@@ -1,20 +1,36 @@
 import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  updateDoc,
+  where,
+  writeBatch,
+} from 'firebase/firestore';
+import {
   getCurrentSession,
   requireSession,
   requireStudentSession,
 } from '../auth/auth';
 import { hasPermission } from '../auth/permissions';
+import { firestoreDb } from '../firebase/config';
+import { OperationType, handleFirestoreError } from '../firebase/errors';
 import type {
   AcademicYear,
   AuditLog,
+  CourseResult,
   Department,
   Document,
+  FeePayment,
+  FeeRecord,
   FeeStatus,
   Notification,
   Programme,
   RequestPriority,
   RequestStatus,
   Result,
+  ScholarshipDocument,
   SessionUser,
   Student,
   StudentRequest,
@@ -26,7 +42,6 @@ import {
   sanitizeSearchQuery,
   type DerivedFeeSummary,
 } from '../utils/calculations';
-import { loadDatabase, saveDatabase, waitDelay } from './storage';
 
 export interface StudentDashboardPayload {
   student: Student;
@@ -97,46 +112,121 @@ export interface StudentSearchRow {
   feeStatus?: FeeStatus;
 }
 
+async function safeGetDoc<T>(collectionName: string, docId: string): Promise<T & { id: string }> {
+  const path = `${collectionName}/${docId}`;
+  try {
+    const snap = await getDoc(doc(firestoreDb, collectionName, docId));
+    if (!snap.exists()) {
+      throw new Error(`Record not found at ${path}.`);
+    }
+    return { id: snap.id, ...(snap.data() as T) };
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Record not found')) {
+      throw error;
+    }
+    handleFirestoreError(error, OperationType.GET, path);
+  }
+}
+
+async function safeGetDocs<T>(
+  path: string,
+  q: ReturnType<typeof query> | ReturnType<typeof collection>
+): Promise<Array<T & { id: string }>> {
+  try {
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as T) }));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+  }
+}
+
 export const db = {
   async getStudentDashboardData(): Promise<StudentDashboardPayload> {
-    await waitDelay();
     const session = requireStudentSession();
-    const state = loadDatabase();
-    const student = state.students.find((s) => s.id === session.studentId)!;
-    const department = state.departments.find((d) => d.id === student.departmentId)!;
-    const programme = state.programmes.find((p) => p.id === student.programmeId)!;
-    const academicYear = state.academicYears.find(
-      (y) => y.id === student.currentAcademicYearId
-    )!;
+    const enrollmentNo = session.studentId!;
 
-    const feeRecord = state.feeRecords.find(
-      (f) => f.studentId === student.id && f.academicYearId === academicYear.id
-    )!;
-    const studentPayments = state.feePayments.filter((p) => p.studentId === student.id);
-    const feeSummary = deriveFeeSummary(feeRecord, studentPayments);
+    const student = await safeGetDoc<Student>('students', enrollmentNo);
+    const [department, programme, academicYear, feeRecords, feePayments, publishedResultHeaders, requests, documents, notifications] =
+      await Promise.all([
+        safeGetDoc<Department>('departments', student.departmentId),
+        safeGetDoc<Programme>('programmes', student.programmeId),
+        safeGetDoc<AcademicYear>('academicYears', student.currentAcademicYearId),
+        safeGetDocs<FeeRecord>(
+          'feeRecords',
+          query(collection(firestoreDb, 'feeRecords'), where('studentId', '==', enrollmentNo))
+        ),
+        safeGetDocs<FeePayment>(
+          'feePayments',
+          query(collection(firestoreDb, 'feePayments'), where('studentId', '==', enrollmentNo))
+        ),
+        // Security rule requires status == 'PUBLISHED' on student results queries
+        safeGetDocs<Omit<Result, 'courses'>>(
+          'results',
+          query(
+            collection(firestoreDb, 'results'),
+            where('studentId', '==', enrollmentNo),
+            where('status', '==', 'PUBLISHED')
+          )
+        ),
+        safeGetDocs<Omit<StudentRequest, 'messages'>>(
+          'requests',
+          query(collection(firestoreDb, 'requests'), where('studentId', '==', enrollmentNo))
+        ),
+        safeGetDocs<Document>(
+          'documents',
+          query(collection(firestoreDb, 'documents'), where('studentId', '==', enrollmentNo))
+        ),
+        safeGetDocs<Notification>(
+          'notifications',
+          query(collection(firestoreDb, 'notifications'), where('userId', '==', session.accountId))
+        ),
+      ]);
 
-    const studentResults = state.results.filter((r) => r.studentId === student.id);
-    const publishedResults = filterVisibleResultsForStudent(studentResults);
+    const currentFeeRecord =
+      feeRecords.find((f) => f.academicYearId === academicYear.id) ?? feeRecords[0];
+
+    const feeSummary: DerivedFeeSummary = currentFeeRecord
+      ? deriveFeeSummary(currentFeeRecord, feePayments)
+      : {
+          totalAmountInr: 0,
+          verifiedPaidInr: 0,
+          pendingAmountInr: 0,
+          balanceInr: 0,
+          status: 'UNPAID',
+        };
+
+    // Hydrate courses subcollection for each published result
+    const publishedResultsWithCourses: Result[] = await Promise.all(
+      publishedResultHeaders.map(async (hdr) => {
+        const courses = await safeGetDocs<CourseResult>(
+          `results/${hdr.id}/courses`,
+          collection(firestoreDb, 'results', hdr.id, 'courses')
+        );
+        return {
+          ...hdr,
+          courses,
+        };
+      })
+    );
+
+    const visiblePublished = filterVisibleResultsForStudent(publishedResultsWithCourses);
     const latestPublishedResult =
-      publishedResults.length > 0
-        ? publishedResults[publishedResults.length - 1]
+      visiblePublished.length > 0
+        ? visiblePublished[visiblePublished.length - 1]
         : null;
-    const cgpa = computeCGPA(studentResults);
+    const cgpa = computeCGPA(visiblePublished);
 
-    const studentRequests = state.requests.filter((r) => r.studentId === student.id);
-    const openRequestsCount = studentRequests.filter(
+    const openRequestsCount = requests.filter(
       (r) => r.status !== 'RESOLVED' && r.status !== 'CLOSED'
     ).length;
 
-    const attentionDocuments = state.documents.filter(
-      (d) =>
-        d.studentId === student.id &&
-        (d.status === 'REJECTED' || d.status === 'REPLACEMENT_REQUIRED')
+    const attentionDocuments = documents.filter(
+      (d) => d.status === 'REJECTED' || d.status === 'REPLACEMENT_REQUIRED'
     );
 
-    const myNotifications = state.notifications
-      .filter((n) => n.userAccountId === session.accountId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const sortedNotifications = [...notifications].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt)
+    );
 
     return {
       student,
@@ -144,107 +234,138 @@ export const db = {
       programme,
       academicYear,
       feeSummary,
-      feeDueDate: feeRecord.dueDate,
+      feeDueDate: currentFeeRecord?.dueDate ?? '2026-11-30',
       latestPublishedResult,
       cgpa,
       openRequestsCount,
-      totalRequestsCount: studentRequests.length,
+      totalRequestsCount: requests.length,
       attentionDocuments,
-      recentNotifications: myNotifications.slice(0, 5),
-      unreadNotificationsCount: myNotifications.filter((n) => !n.isRead).length,
+      recentNotifications: sortedNotifications.slice(0, 5),
+      unreadNotificationsCount: sortedNotifications.filter((n) => !n.isRead).length,
     };
   },
 
   async getStudentProfile(): Promise<StudentProfilePayload> {
-    await waitDelay();
     const session = requireStudentSession();
-    const state = loadDatabase();
-    const student = state.students.find((s) => s.id === session.studentId)!;
-    const department = state.departments.find((d) => d.id === student.departmentId)!;
-    const programme = state.programmes.find((p) => p.id === student.programmeId)!;
-    const academicYear = state.academicYears.find(
-      (y) => y.id === student.currentAcademicYearId
-    )!;
-
+    const student = await safeGetDoc<Student>('students', session.studentId!);
+    const [department, programme, academicYear] = await Promise.all([
+      safeGetDoc<Department>('departments', student.departmentId),
+      safeGetDoc<Programme>('programmes', student.programmeId),
+      safeGetDoc<AcademicYear>('academicYears', student.currentAcademicYearId),
+    ]);
     return { student, department, programme, academicYear };
   },
 
   async getNotifications(): Promise<{ items: Notification[]; unreadCount: number }> {
-    await waitDelay();
     const session = requireSession();
-    const state = loadDatabase();
-    const items = state.notifications
-      .filter((n) => n.userAccountId === session.accountId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-
+    const items = await safeGetDocs<Notification>(
+      'notifications',
+      query(collection(firestoreDb, 'notifications'), where('userId', '==', session.accountId))
+    );
+    const sorted = items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     return {
-      items,
-      unreadCount: items.filter((n) => !n.isRead).length,
+      items: sorted,
+      unreadCount: sorted.filter((n) => !n.isRead).length,
     };
   },
 
   async markNotificationRead(notificationId: string): Promise<void> {
-    await waitDelay();
-    const session = requireSession();
-    const state = loadDatabase();
-    const target = state.notifications.find(
-      (n) => n.id === notificationId && n.userAccountId === session.accountId
-    );
-    if (target) {
-      target.isRead = true;
-      saveDatabase(state);
+    requireSession();
+    const path = `notifications/${notificationId}`;
+    try {
+      await updateDoc(doc(firestoreDb, 'notifications', notificationId), {
+        isRead: true,
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
     }
   },
 
   async markAllNotificationsRead(): Promise<void> {
-    await waitDelay();
     const session = requireSession();
-    const state = loadDatabase();
-    let changed = false;
-    for (const n of state.notifications) {
-      if (n.userAccountId === session.accountId && !n.isRead) {
-        n.isRead = true;
-        changed = true;
+    const unread = await safeGetDocs<Notification>(
+      'notifications',
+      query(
+        collection(firestoreDb, 'notifications'),
+        where('userId', '==', session.accountId),
+        where('isRead', '==', false)
+      )
+    );
+    if (unread.length === 0) return;
+
+    try {
+      const batch = writeBatch(firestoreDb);
+      for (const item of unread) {
+        batch.update(doc(firestoreDb, 'notifications', item.id), { isRead: true });
       }
-    }
-    if (changed) {
-      saveDatabase(state);
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'notifications');
     }
   },
 
   async getUnreadNotificationCount(): Promise<number> {
     const session = getCurrentSession();
     if (!session) return 0;
-    const state = loadDatabase();
-    return state.notifications.filter(
-      (n) => n.userAccountId === session.accountId && !n.isRead
-    ).length;
+    try {
+      const unread = await safeGetDocs<Notification>(
+        'notifications',
+        query(
+          collection(firestoreDb, 'notifications'),
+          where('userId', '==', session.accountId),
+          where('isRead', '==', false)
+        )
+      );
+      return unread.length;
+    } catch {
+      return 0;
+    }
   },
 
   async getStaffDashboardData(): Promise<StaffDashboardPayload> {
-    await waitDelay();
     const session = requireSession();
     if (session.role !== 'STAFF') {
       throw new Error('Staff access required.');
     }
 
-    const state = loadDatabase();
-    const currentAy = state.academicYears.find((y) => y.isCurrent)!;
     const metrics: StaffDashboardMetrics = {};
+    const payload: StaffDashboardPayload = {
+      user: session,
+      metrics,
+    };
 
+    const academicYears = await safeGetDocs<AcademicYear>(
+      'academicYears',
+      collection(firestoreDb, 'academicYears')
+    );
+    const currentAy = academicYears.find((y) => y.isCurrent) ?? academicYears[0];
+
+    let studentsList: Array<Student & { id: string }> = [];
     if (hasPermission(session, 'students.read')) {
-      metrics.totalStudents = state.students.length;
+      studentsList = await safeGetDocs<Student>(
+        'students',
+        collection(firestoreDb, 'students')
+      );
+      metrics.totalStudents = studentsList.length;
     }
 
-    if (hasPermission(session, 'fees.read')) {
+    if (hasPermission(session, 'fees.read') && currentAy) {
+      const [feeRecords, feePayments] = await Promise.all([
+        safeGetDocs<FeeRecord>(
+          'feeRecords',
+          query(
+            collection(firestoreDb, 'feeRecords'),
+            where('academicYearId', '==', currentAy.id)
+          )
+        ),
+        safeGetDocs<FeePayment>('feePayments', collection(firestoreDb, 'feePayments')),
+      ]);
+
       let paid = 0;
       let partial = 0;
       let unpaid = 0;
-      const currentFees = state.feeRecords.filter(
-        (f) => f.academicYearId === currentAy.id
-      );
-      for (const rec of currentFees) {
-        const payments = state.feePayments.filter((p) => p.feeRecordId === rec.id);
+      for (const rec of feeRecords) {
+        const payments = feePayments.filter((p) => p.feeRecordId === rec.id);
         const derived = deriveFeeSummary(rec, payments);
         if (derived.status === 'PAID') paid += 1;
         else if (derived.status === 'PARTIAL') partial += 1;
@@ -254,29 +375,14 @@ export const db = {
     }
 
     if (hasPermission(session, 'requests.read')) {
-      metrics.pendingRequestsCount = state.requests.filter(
+      const requests = await safeGetDocs<
+        Omit<StudentRequest, 'messages'> & { assignedStaffName?: string }
+      >('requests', collection(firestoreDb, 'requests'));
+
+      metrics.pendingRequestsCount = requests.filter(
         (r) => r.status !== 'RESOLVED' && r.status !== 'CLOSED'
       ).length;
-    }
 
-    if (hasPermission(session, 'documents.review')) {
-      metrics.documentsAwaitingReviewCount = state.documents.filter(
-        (d) => d.status === 'UPLOADED' || d.status === 'UNDER_REVIEW'
-      ).length;
-    }
-
-    if (hasPermission(session, 'scholarships.read')) {
-      metrics.scholarshipDocsAwaitingReviewCount = state.scholarshipDocuments.filter(
-        (d) => d.status === 'UPLOADED' || d.status === 'UNDER_REVIEW'
-      ).length;
-    }
-
-    const payload: StaffDashboardPayload = {
-      user: session,
-      metrics,
-    };
-
-    if (hasPermission(session, 'requests.read')) {
       const statuses: RequestStatus[] = [
         'SUBMITTED',
         'UNDER_REVIEW',
@@ -286,10 +392,10 @@ export const db = {
       ];
       payload.requestsByStatus = statuses.map((status) => ({
         status,
-        count: state.requests.filter((r) => r.status === status).length,
+        count: requests.filter((r) => r.status === status).length,
       }));
 
-      const openReqs = state.requests.filter(
+      const openReqs = requests.filter(
         (r) => r.status !== 'RESOLVED' && r.status !== 'CLOSED'
       );
       const priorities: RequestPriority[] = ['URGENT', 'HIGH', 'MEDIUM', 'LOW'];
@@ -298,14 +404,13 @@ export const db = {
         count: openReqs.filter((r) => r.priority === priority).length,
       }));
 
-      const sorted = [...state.requests].sort((a, b) =>
+      const studentById = new Map(studentsList.map((s) => [s.id, s]));
+      const sorted = [...requests].sort((a, b) =>
         b.updatedAt.localeCompare(a.updatedAt)
       );
+
       payload.recentRequests = sorted.slice(0, 8).map((r) => {
-        const stu = state.students.find((s) => s.id === r.studentId);
-        const assignee = r.assignedStaffId
-          ? state.staffAccounts.find((st) => st.id === r.assignedStaffId)
-          : undefined;
+        const stu = studentById.get(r.studentId);
         return {
           id: r.id,
           ticketNumber: r.ticketNumber,
@@ -313,16 +418,42 @@ export const db = {
           category: r.category,
           priority: r.priority,
           status: r.status,
-          studentName: stu?.fullName ?? 'Unknown student',
-          enrollmentNumber: stu?.enrollmentNumber ?? '—',
-          assigneeName: assignee?.fullName ?? 'Unassigned',
+          studentName: stu?.fullName ?? r.studentId,
+          enrollmentNumber: stu?.enrollmentNumber ?? r.studentId,
+          assigneeName: r.assignedStaffName ?? 'Unassigned',
           updatedAt: r.updatedAt,
         };
       });
     }
 
+    if (hasPermission(session, 'documents.review')) {
+      const docs = await safeGetDocs<Document>(
+        'documents',
+        collection(firestoreDb, 'documents')
+      );
+      metrics.documentsAwaitingReviewCount = docs.filter(
+        (d) => d.status === 'UPLOADED' || d.status === 'UNDER_REVIEW'
+      ).length;
+    }
+
+    if (hasPermission(session, 'scholarships.read')) {
+      const schDocs = await safeGetDocs<ScholarshipDocument>(
+        'scholarshipDocuments',
+        collection(firestoreDb, 'scholarshipDocuments')
+      );
+      metrics.scholarshipDocsAwaitingReviewCount = schDocs.filter(
+        (d) => d.status === 'UPLOADED' || d.status === 'UNDER_REVIEW'
+      ).length;
+    }
+
     if (hasPermission(session, 'audit.read')) {
-      payload.recentAuditLogs = state.auditLogs.slice(0, 8);
+      const logs = await safeGetDocs<AuditLog>(
+        'auditLogs',
+        collection(firestoreDb, 'auditLogs')
+      );
+      payload.recentAuditLogs = logs
+        .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+        .slice(0, 8);
     }
 
     return payload;
@@ -333,7 +464,6 @@ export const db = {
     error?: string;
     totalCount: number;
   }> {
-    await waitDelay();
     const session = requireSession();
     if (!hasPermission(session, 'students.read')) {
       throw new Error('Permission students.read required.');
@@ -348,30 +478,52 @@ export const db = {
       };
     }
 
-    const state = loadDatabase();
-    const currentAy = state.academicYears.find((y) => y.isCurrent)!;
     const canReadFees = hasPermission(session, 'fees.read');
-    const q = sanitized.query.toLowerCase();
+    const [students, programmes, departments, academicYears] = await Promise.all([
+      safeGetDocs<Student>('students', collection(firestoreDb, 'students')),
+      safeGetDocs<Programme>('programmes', collection(firestoreDb, 'programmes')),
+      safeGetDocs<Department>('departments', collection(firestoreDb, 'departments')),
+      safeGetDocs<AcademicYear>('academicYears', collection(firestoreDb, 'academicYears')),
+    ]);
 
-    const matched = q
-      ? state.students.filter(
+    const currentAy = academicYears.find((y) => y.isCurrent) ?? academicYears[0];
+    const progMap = new Map(programmes.map((p) => [p.id, p]));
+    const deptMap = new Map(departments.map((d) => [d.id, d]));
+
+    let feeRecords: Array<FeeRecord & { id: string }> = [];
+    let feePayments: Array<FeePayment & { id: string }> = [];
+    if (canReadFees && currentAy) {
+      [feeRecords, feePayments] = await Promise.all([
+        safeGetDocs<FeeRecord>(
+          'feeRecords',
+          query(
+            collection(firestoreDb, 'feeRecords'),
+            where('academicYearId', '==', currentAy.id)
+          )
+        ),
+        safeGetDocs<FeePayment>('feePayments', collection(firestoreDb, 'feePayments')),
+      ]);
+    }
+
+    const q = sanitized.query.toLowerCase();
+    const matched = (q
+      ? students.filter(
           (s) =>
             s.enrollmentNumber.toLowerCase().includes(q) ||
             s.fullName.toLowerCase().includes(q)
         )
-      : state.students;
+      : students
+    ).sort((a, b) => a.enrollmentNumber.localeCompare(b.enrollmentNumber));
 
     const rows: StudentSearchRow[] = matched.slice(0, 50).map((s) => {
-      const prog = state.programmes.find((p) => p.id === s.programmeId)!;
-      const dept = state.departments.find((d) => d.id === s.departmentId)!;
+      const prog = progMap.get(s.programmeId);
+      const dept = deptMap.get(s.departmentId);
 
       let feeStatus: FeeStatus | undefined;
       if (canReadFees) {
-        const rec = state.feeRecords.find(
-          (f) => f.studentId === s.id && f.academicYearId === currentAy.id
-        );
+        const rec = feeRecords.find((f) => f.studentId === s.enrollmentNumber);
         if (rec) {
-          const payments = state.feePayments.filter((p) => p.feeRecordId === rec.id);
+          const payments = feePayments.filter((p) => p.feeRecordId === rec.id);
           feeStatus = deriveFeeSummary(rec, payments).status;
         }
       }
@@ -380,8 +532,8 @@ export const db = {
         id: s.id,
         enrollmentNumber: s.enrollmentNumber,
         fullName: s.fullName,
-        programmeName: prog.name,
-        departmentCode: dept.code,
+        programmeName: prog?.name ?? s.programmeId,
+        departmentCode: dept?.code ?? s.departmentId,
         batchYear: s.batchYear,
         currentSemester: s.currentSemester,
         enrollmentStatus: s.enrollmentStatus,

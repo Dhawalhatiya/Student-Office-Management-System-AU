@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, Bell } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 import { db, type StudentDashboardPayload } from '../../db/db';
+import { formatReadableFirestoreError } from '../../firebase/errors';
 import { formatDate, formatINR } from '../../utils/format';
 
 export function StudentDashboard() {
@@ -22,7 +23,7 @@ export function StudentDashboard() {
       })
       .catch((err) => {
         if (active) {
-          setError(err instanceof Error ? err.message : 'Unable to load dashboard.');
+          setError(formatReadableFirestoreError(err, 'Unable to load dashboard.'));
         }
       })
       .finally(() => {

@@ -1,0 +1,388 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Maps a Firebase Auth UID to an application role, staff group, and student enrollment ID.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "role": { "type": "string", "enum": ["STUDENT", "STAFF"] },
+        "staffRole": {
+          "type": "string",
+          "enum": ["STUDENT_OFFICE", "FINANCE", "EXAMINATION", "ACADEMIC"]
+        },
+        "studentId": { "type": "string", "maxLength": 64, "pattern": "^[A-Z0-9\\-]+$" },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "designation": { "type": "string", "maxLength": 120 }
+      },
+      "required": ["name", "role"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Fictional student record keyed by unique enrollmentNo.",
+      "type": "object",
+      "properties": {
+        "enrollmentNumber": { "type": "string", "minLength": 5, "maxLength": 64, "pattern": "^AVU-DEMO-[0-9]{2}-[A-Z]+-[0-9]{3}$" },
+        "fullName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "dateOfBirth": { "type": "string", "minLength": 8, "maxLength": 32 },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "phone": { "type": "string", "minLength": 6, "maxLength": 32 },
+        "departmentId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "programmeId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "batchYear": { "type": "integer" },
+        "currentSemester": { "type": "integer" },
+        "currentAcademicYearId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "enrollmentStatus": { "type": "string", "enum": ["ACTIVE", "ON_LEAVE", "GRADUATED", "WITHDRAWN"] },
+        "address": { "type": "string", "minLength": 1, "maxLength": 400 }
+      },
+      "required": [
+        "enrollmentNumber",
+        "fullName",
+        "dateOfBirth",
+        "email",
+        "phone",
+        "departmentId",
+        "programmeId",
+        "batchYear",
+        "currentSemester",
+        "currentAcademicYearId",
+        "enrollmentStatus",
+        "address"
+      ]
+    },
+    "FeeRecord": {
+      "title": "FeeRecord",
+      "description": "Annual student fee obligation stored in whole-rupee integers.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "minLength": 5, "maxLength": 64 },
+        "academicYearId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "totalAmountInr": { "type": "integer" },
+        "dueDate": { "type": "string", "minLength": 8, "maxLength": 32 }
+      },
+      "required": ["studentId", "academicYearId", "totalAmountInr", "dueDate"]
+    },
+    "FeePayment": {
+      "title": "FeePayment",
+      "description": "Individual student fee payment in whole-rupee integers; only VERIFIED payments count toward balance.",
+      "type": "object",
+      "properties": {
+        "feeRecordId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "studentId": { "type": "string", "minLength": 5, "maxLength": 64 },
+        "amountInr": { "type": "integer" },
+        "paidAt": { "type": "string", "minLength": 8, "maxLength": 32 },
+        "mode": { "type": "string", "enum": ["NEFT", "UPI", "Card", "Demand Draft"] },
+        "referenceNumber": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "status": { "type": "string", "enum": ["VERIFIED", "PENDING", "REJECTED"] }
+      },
+      "required": ["feeRecordId", "studentId", "amountInr", "paidAt", "mode", "referenceNumber", "status"]
+    },
+    "Result": {
+      "title": "Result",
+      "description": "Semester examination result header; students may only read PUBLISHED results.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "minLength": 5, "maxLength": 64 },
+        "semesterNumber": { "type": "integer" },
+        "academicYearId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "status": { "type": "string", "enum": ["DRAFT", "UNDER_REVIEW", "APPROVED", "PUBLISHED"] },
+        "sgpa": { "type": "number" },
+        "publishedAt": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["studentId", "semesterNumber", "academicYearId", "status", "sgpa"]
+    },
+    "CourseResult": {
+      "title": "CourseResult",
+      "description": "Course grade entry inside a semester result.",
+      "type": "object",
+      "properties": {
+        "courseCode": { "type": "string", "minLength": 2, "maxLength": 24 },
+        "courseTitle": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "credits": { "type": "integer" },
+        "marksObtained": { "type": "integer" },
+        "maxMarks": { "type": "integer" },
+        "grade": { "type": "string", "enum": ["O", "A+", "A", "B+", "B", "C", "F"] },
+        "gradePoint": { "type": "integer" }
+      },
+      "required": ["courseCode", "courseTitle", "credits", "marksObtained", "maxMarks", "grade", "gradePoint"]
+    },
+    "StudentRequest": {
+      "title": "StudentRequest",
+      "description": "Administrative support request ticket submitted by a student.",
+      "type": "object",
+      "properties": {
+        "ticketNumber": { "type": "string", "minLength": 4, "maxLength": 40 },
+        "studentId": { "type": "string", "minLength": 5, "maxLength": 64 },
+        "subject": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Certificate / Letter",
+            "Profile Correction",
+            "Fee Clarification",
+            "Examination & Results",
+            "Scholarship Query",
+            "General Administration"
+          ]
+        },
+        "priority": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "URGENT"] },
+        "status": { "type": "string", "enum": ["SUBMITTED", "UNDER_REVIEW", "WAITING_FOR_STUDENT", "RESOLVED", "CLOSED"] },
+        "assignedStaffId": { "type": "string", "maxLength": 64 },
+        "assignedStaffName": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string", "minLength": 8, "maxLength": 40 },
+        "updatedAt": { "type": "string", "minLength": 8, "maxLength": 40 }
+      },
+      "required": ["ticketNumber", "studentId", "subject", "category", "priority", "status", "createdAt", "updatedAt"]
+    },
+    "RequestMessage": {
+      "title": "RequestMessage",
+      "description": "Message inside a student request thread; isInternal=true messages are staff-only.",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "senderName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "senderRole": { "type": "string", "enum": ["STUDENT", "STAFF"] },
+        "isInternal": { "type": "boolean" },
+        "body": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "sentAt": { "type": "string", "minLength": 8, "maxLength": 40 }
+      },
+      "required": ["requestId", "senderName", "senderRole", "isInternal", "body", "sentAt"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Student-submitted verification document.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "minLength": 5, "maxLength": 64 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "category": {
+          "type": "string",
+          "enum": ["Identity Proof", "Academic Transcript", "Bank & Fee Proof", "Scholarship Document", "Admission Record"]
+        },
+        "fileName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "uploadedAt": { "type": "string", "minLength": 8, "maxLength": 40 },
+        "status": { "type": "string", "enum": ["UPLOADED", "UNDER_REVIEW", "VERIFIED", "REJECTED", "REPLACEMENT_REQUIRED"] },
+        "reviewerNote": { "type": "string", "maxLength": 500 }
+      },
+      "required": ["studentId", "title", "category", "fileName", "uploadedAt", "status"]
+    },
+    "Scholarship": {
+      "title": "Scholarship",
+      "description": "University scholarship programme with whole-rupee award amount.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "academicYearId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "awardAmountInr": { "type": "integer" },
+        "summary": { "type": "string", "minLength": 2, "maxLength": 600 }
+      },
+      "required": ["name", "academicYearId", "awardAmountInr", "summary"]
+    },
+    "ScholarshipRequirement": {
+      "title": "ScholarshipRequirement",
+      "description": "Configurable required document item under a scholarship.",
+      "type": "object",
+      "properties": {
+        "documentName": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "description": { "type": "string", "minLength": 2, "maxLength": 400 },
+        "mandatory": { "type": "boolean" }
+      },
+      "required": ["documentName", "description", "mandatory"]
+    },
+    "StudentScholarship": {
+      "title": "StudentScholarship",
+      "description": "Student scholarship application record.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "minLength": 5, "maxLength": 64 },
+        "scholarshipId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
+        "appliedAt": { "type": "string", "minLength": 8, "maxLength": 40 }
+      },
+      "required": ["studentId", "scholarshipId", "status", "appliedAt"]
+    },
+    "ScholarshipDocument": {
+      "title": "ScholarshipDocument",
+      "description": "Uploaded document fulfilling a scholarship requirement.",
+      "type": "object",
+      "properties": {
+        "studentScholarshipId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "studentId": { "type": "string", "minLength": 5, "maxLength": 64 },
+        "requirementId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "fileName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "uploadedAt": { "type": "string", "minLength": 8, "maxLength": 40 },
+        "status": { "type": "string", "enum": ["UPLOADED", "UNDER_REVIEW", "VERIFIED", "REJECTED", "REPLACEMENT_REQUIRED"] }
+      },
+      "required": ["studentScholarshipId", "studentId", "requirementId", "fileName", "uploadedAt", "status"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User-scoped notification item.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "category": { "type": "string", "enum": ["Fees", "Results", "Requests", "Documents", "General"] },
+        "createdAt": { "type": "string", "minLength": 8, "maxLength": 40 },
+        "isRead": { "type": "boolean" },
+        "linkPath": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["userId", "title", "body", "category", "createdAt", "isRead"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Append-only security and authentication audit entry.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "minLength": 8, "maxLength": 40 },
+        "actorUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "actorEmail": { "type": "string", "minLength": 3, "maxLength": 254 },
+        "actorRole": { "type": "string", "enum": ["STUDENT", "STAFF"] },
+        "action": { "type": "string", "enum": ["LOGIN_SUCCESS", "LOGIN_FAILURE", "LOGIN_RATE_LIMITED", "LOGOUT", "ACCESS_DENIED"] },
+        "targetRoute": { "type": "string", "maxLength": 160 },
+        "detail": { "type": "string", "minLength": 1, "maxLength": 400 }
+      },
+      "required": ["timestamp", "actorUid", "actorEmail", "actorRole", "action", "detail"]
+    },
+    "ExportLog": {
+      "title": "ExportLog",
+      "description": "Log of staff report exports.",
+      "type": "object",
+      "properties": {
+        "exportedByUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "reportType": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "createdAt": { "type": "string", "minLength": 8, "maxLength": 40 },
+        "rowCount": { "type": "integer" }
+      },
+      "required": ["exportedByUid", "reportType", "createdAt", "rowCount"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "University academic department.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "minLength": 2, "maxLength": 20 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 140 }
+      },
+      "required": ["code", "name"]
+    },
+    "Programme": {
+      "title": "Programme",
+      "description": "University degree programme.",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "minLength": 2, "maxLength": 20 },
+        "name": { "type": "string", "minLength": 2, "maxLength": 140 },
+        "departmentId": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "durationSemesters": { "type": "integer" }
+      },
+      "required": ["code", "name", "departmentId", "durationSemesters"]
+    },
+    "AcademicYear": {
+      "title": "AcademicYear",
+      "description": "Academic year definition.",
+      "type": "object",
+      "properties": {
+        "label": { "type": "string", "minLength": 4, "maxLength": 20 },
+        "startYear": { "type": "integer" },
+        "endYear": { "type": "integer" },
+        "isCurrent": { "type": "boolean" }
+      },
+      "required": ["label", "startYear", "endYear", "isCurrent"]
+    },
+    "SeedMeta": {
+      "title": "SeedMeta",
+      "description": "Development seed status marker.",
+      "type": "object",
+      "properties": {
+        "seeded": { "type": "boolean" },
+        "seededAt": { "type": "string", "minLength": 8, "maxLength": 40 },
+        "seededByEmail": { "type": "string", "minLength": 3, "maxLength": 254 }
+      },
+      "required": ["seeded", "seededAt", "seededByEmail"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "User identity mapping role, staffRole, and studentId."
+    },
+    "/students/{enrollmentNo}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Student records keyed by unique enrollmentNo."
+    },
+    "/feeRecords/{feeRecordId}": {
+      "schema": { "$ref": "#/entities/FeeRecord" },
+      "description": "Annual fee records per student."
+    },
+    "/feePayments/{paymentId}": {
+      "schema": { "$ref": "#/entities/FeePayment" },
+      "description": "Student fee payment transactions."
+    },
+    "/results/{resultId}": {
+      "schema": { "$ref": "#/entities/Result" },
+      "description": "Semester result headers."
+    },
+    "/results/{resultId}/courses/{courseCode}": {
+      "schema": { "$ref": "#/entities/CourseResult" },
+      "description": "Course-level grades under a semester result."
+    },
+    "/requests/{requestId}": {
+      "schema": { "$ref": "#/entities/StudentRequest" },
+      "description": "Student administrative requests."
+    },
+    "/requests/{requestId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/RequestMessage" },
+      "description": "Messages inside a request thread."
+    },
+    "/documents/{documentId}": {
+      "schema": { "$ref": "#/entities/Document" },
+      "description": "Student verification documents."
+    },
+    "/scholarships/{scholarshipId}": {
+      "schema": { "$ref": "#/entities/Scholarship" },
+      "description": "University scholarship definitions."
+    },
+    "/scholarships/{scholarshipId}/requirements/{requirementId}": {
+      "schema": { "$ref": "#/entities/ScholarshipRequirement" },
+      "description": "Required documents for a scholarship."
+    },
+    "/studentScholarships/{studentScholarshipId}": {
+      "schema": { "$ref": "#/entities/StudentScholarship" },
+      "description": "Student scholarship applications."
+    },
+    "/scholarshipDocuments/{scholarshipDocumentId}": {
+      "schema": { "$ref": "#/entities/ScholarshipDocument" },
+      "description": "Submitted scholarship documents."
+    },
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "User-scoped notifications."
+    },
+    "/auditLogs/{auditId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Append-only security audit log."
+    },
+    "/exportLogs/{exportLogId}": {
+      "schema": { "$ref": "#/entities/ExportLog" },
+      "description": "Report export log entries."
+    },
+    "/departments/{deptId}": {
+      "schema": { "$ref": "#/entities/Department" },
+      "description": "University departments."
+    },
+    "/programmes/{programmeId}": {
+      "schema": { "$ref": "#/entities/Programme" },
+      "description": "University programmes."
+    },
+    "/academicYears/{academicYearId}": {
+      "schema": { "$ref": "#/entities/AcademicYear" },
+      "description": "Academic years."
+    },
+    "/meta/{docId}": {
+      "schema": { "$ref": "#/entities/SeedMeta" },
+      "description": "Development seed metadata."
+    }
+  }
+}

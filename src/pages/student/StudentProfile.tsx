@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
 import { db, type StudentProfilePayload } from '../../db/db';
+import { formatReadableFirestoreError } from '../../firebase/errors';
 import { formatDate } from '../../utils/format';
 
 export function StudentProfile() {
@@ -16,7 +17,7 @@ export function StudentProfile() {
         if (active) setData(res);
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : 'Unable to load profile.');
+        if (active) setError(formatReadableFirestoreError(err, 'Unable to load profile.'));
       })
       .finally(() => {
         if (active) setLoading(false);

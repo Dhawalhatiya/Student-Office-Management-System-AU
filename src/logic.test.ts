@@ -1,22 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  MAX_FAILED_ATTEMPTS,
-  RATE_LIMIT_WINDOW_MS,
-  checkStaffRouteAccess,
-  getCurrentSession,
-  requireStudentSession,
-  signIn,
-  signOut,
-} from './auth/auth';
-import {
   STAFF_GROUP_PERMISSIONS,
   canAccessStaffRoute,
   getPermissionsForRole,
+  getPortalHomeRoute,
   hasPermission,
 } from './auth/permissions';
-import { db } from './db/db';
-import { loadDatabase, resetDatabaseForTests, setSimulatedDelayMs } from './db/storage';
+import {
+  MAX_FAILED_ATTEMPTS,
+  RATE_LIMIT_WINDOW_MS,
+  clearFailedAttempts,
+  getRateLimitStatus,
+  recordFailedAttempt,
+  resetRateLimitsForTests,
+} from './auth/rateLimit';
+import { createSeedDatabase } from './data/seed';
+import type { SessionUser } from './types/domain';
 import {
   computeCGPA,
   computeSGPA,
@@ -28,8 +28,6 @@ import {
 import { hashPassword, verifyPassword } from './utils/crypto';
 import { formatDate, formatINR, getStatusDisplay } from './utils/format';
 
-setSimulatedDelayMs(0);
-
 test('password hashing stores non-plaintext hash and verifies accurately', () => {
   const hash = hashPassword('DemoStudent123!');
   assert.notEqual(hash, 'DemoStudent123!');
@@ -37,7 +35,7 @@ test('password hashing stores non-plaintext hash and verifies accurately', () =>
   assert.equal(verifyPassword('DemoStudent123!', hash), true);
   assert.equal(verifyPassword('WrongPass', hash), false);
 
-  const seeded = resetDatabaseForTests();
+  const seeded = createSeedDatabase();
   for (const acc of seeded.userAccounts) {
     assert.ok(acc.passwordHash.startsWith('sha256$'));
     assert.ok(!acc.passwordHash.includes('DemoStudent123!'));
@@ -58,7 +56,7 @@ test('formatting helpers format INR in en-IN and dates like 15 Nov 2026', () => 
 test('fee status derives strictly from VERIFIED payments and ignores PENDING payments', () => {
   const feeRecord = {
     id: 'f1',
-    studentId: 'stu-1',
+    studentId: 'AVU-DEMO-24-CSE-001',
     academicYearId: 'ay-2026-27',
     totalAmountInr: 145000,
     dueDate: '2026-11-30',
@@ -68,7 +66,7 @@ test('fee status derives strictly from VERIFIED payments and ignores PENDING pay
     {
       id: 'p1',
       feeRecordId: 'f1',
-      studentId: 'stu-1',
+      studentId: 'AVU-DEMO-24-CSE-001',
       amountInr: 72500,
       paidAt: '2026-07-18',
       mode: 'NEFT',
@@ -78,7 +76,7 @@ test('fee status derives strictly from VERIFIED payments and ignores PENDING pay
     {
       id: 'p2',
       feeRecordId: 'f1',
-      studentId: 'stu-1',
+      studentId: 'AVU-DEMO-24-CSE-001',
       amountInr: 72500,
       paidAt: '2026-11-12',
       mode: 'UPI',
@@ -93,29 +91,49 @@ test('fee status derives strictly from VERIFIED payments and ignores PENDING pay
   assert.equal(summary.status, 'PARTIAL');
 });
 
-test('Aarav Mehta seed data matches exact specification including hidden DRAFT semester 5 result', async () => {
-  resetDatabaseForTests();
-  const signInRes = await signIn('student.demo@example.com', 'DemoStudent123!');
-  assert.equal(signInRes.ok, true);
-  assert.equal(signInRes.redirectTo, '/student');
+test('Aarav Mehta seed data matches exact specification including hidden DRAFT semester 5 result', () => {
+  const seed = createSeedDatabase();
+  const aarav = seed.students.find((s) => s.enrollmentNumber === 'AVU-DEMO-24-CSE-001');
+  assert.ok(aarav);
+  assert.equal(aarav.fullName, 'Aarav Mehta');
+  assert.equal(aarav.currentSemester, 5);
 
-  const dash = await db.getStudentDashboardData();
-  assert.equal(dash.student.enrollmentNumber, 'AVU-DEMO-24-CSE-001');
-  assert.equal(dash.student.currentSemester, 5);
-  assert.equal(dash.feeSummary.totalAmountInr, 145000);
-  assert.equal(dash.feeSummary.verifiedPaidInr, 72500);
-  assert.equal(dash.feeSummary.status, 'PARTIAL');
-  assert.equal(dash.latestPublishedResult?.semesterNumber, 4);
-  assert.equal(dash.latestPublishedResult?.sgpa, 7.83);
-  assert.equal(dash.cgpa, 7.86);
-  assert.equal(dash.openRequestsCount, 2);
-  assert.equal(dash.attentionDocuments.length, 1);
-  assert.equal(dash.attentionDocuments[0].reviewerNote, 'Bank proof - image is unclear');
-  assert.equal(dash.unreadNotificationsCount, 4);
+  const feeRec = seed.feeRecords.find(
+    (f) => f.studentId === aarav.id && f.academicYearId === aarav.currentAcademicYearId
+  );
+  assert.ok(feeRec);
+  const payments = seed.feePayments.filter((p) => p.feeRecordId === feeRec.id);
+  const summary = deriveFeeSummary(feeRec, payments);
+  assert.equal(summary.totalAmountInr, 145000);
+  assert.equal(summary.verifiedPaidInr, 72500);
+  assert.equal(summary.pendingAmountInr, 35000);
+  assert.equal(summary.balanceInr, 72500);
+  assert.equal(summary.status, 'PARTIAL');
 
-  // Student must never query another student's data
-  assert.throws(() => requireStudentSession('stu-2'), /Access denied/);
-  await signOut();
+  const aaravResults = seed.results.filter((r) => r.studentId === aarav.id);
+  const visible = filterVisibleResultsForStudent(aaravResults);
+  assert.equal(visible.length, 4);
+  assert.equal(visible[visible.length - 1].semesterNumber, 4);
+  assert.equal(visible[visible.length - 1].sgpa, 7.83);
+  assert.equal(computeCGPA(visible), 7.86);
+
+  const sem5 = aaravResults.find((r) => r.semesterNumber === 5);
+  assert.equal(sem5?.status, 'DRAFT');
+
+  const aaravReqs = seed.requests.filter((r) => r.studentId === aarav.id);
+  const openCount = aaravReqs.filter((r) => r.status !== 'RESOLVED' && r.status !== 'CLOSED').length;
+  assert.equal(openCount, 2);
+
+  const attentionDocs = seed.documents.filter(
+    (d) => d.studentId === aarav.id && (d.status === 'REJECTED' || d.status === 'REPLACEMENT_REQUIRED')
+  );
+  assert.equal(attentionDocs.length, 1);
+  assert.equal(attentionDocs[0].reviewerNote, 'Bank proof - image is unclear');
+
+  const unreadNotifs = seed.notifications.filter(
+    (n) => n.userAccountId === 'user-stu-1' && !n.isRead
+  );
+  assert.equal(unreadNotifs.length, 4);
 });
 
 test('filterVisibleResultsForStudent hides DRAFT, UNDER_REVIEW, and APPROVED results', () => {
@@ -130,73 +148,56 @@ test('filterVisibleResultsForStudent hides DRAFT, UNDER_REVIEW, and APPROVED res
   assert.equal(visible[0].id, '1');
 });
 
-test('login validation, generic error for unknown/bad password, and 5-attempt rate limiting', async () => {
-  resetDatabaseForTests();
-  const invalidEmail = await signIn('not-an-email', 'anything');
-  assert.equal(invalidEmail.ok, false);
-  assert.equal(invalidEmail.fieldError, 'Enter a valid email address.');
-
+test('rate limiter locks after 5 failed attempts in 15 minutes and resets after window or success', () => {
+  resetRateLimitsForTests();
+  const email = 'finance.demo@example.com';
   const baseTime = 1_700_000_000_000;
-  const wrongPass = await signIn('student.demo@example.com', 'Wrong123!', baseTime);
-  const unknownUser = await signIn('nobody@example.com', 'Wrong123!', baseTime);
-  assert.equal(wrongPass.error, 'Email or password is incorrect.');
-  assert.equal(unknownUser.error, 'Email or password is incorrect.');
 
-  // Trigger 5 failed attempts on finance.demo@example.com
   for (let i = 0; i < MAX_FAILED_ATTEMPTS; i++) {
-    const r = await signIn('finance.demo@example.com', 'BadPassword', baseTime + i * 1000);
-    assert.equal(r.error, 'Email or password is incorrect.');
+    assert.equal(getRateLimitStatus(email, baseTime + i * 1000).limited, false);
+    recordFailedAttempt(email, baseTime + i * 1000);
   }
 
-  // 6th attempt within 15 minutes is rate-limited even with correct password
-  const limited = await signIn('finance.demo@example.com', 'DemoStaff123!', baseTime + 10_000);
-  assert.equal(limited.ok, false);
-  assert.match(limited.error ?? '', /^Too many sign-in attempts\. Try again in about \d+ minutes\.$/);
+  const locked = getRateLimitStatus(email, baseTime + 10_000);
+  assert.equal(locked.limited, true);
+  assert.ok(locked.minutesRemaining >= 1 && locked.minutesRemaining <= 15);
 
-  // After 15 minutes window passes, sign-in succeeds
-  const afterWindow = await signIn(
-    'finance.demo@example.com',
-    'DemoStaff123!',
-    baseTime + RATE_LIMIT_WINDOW_MS + 60_000
-  );
-  assert.equal(afterWindow.ok, true);
-  assert.equal(afterWindow.redirectTo, '/staff');
-  await signOut();
+  const expired = getRateLimitStatus(email, baseTime + RATE_LIMIT_WINDOW_MS + 60_000);
+  assert.equal(expired.limited, false);
+
+  clearFailedAttempts(email);
+  assert.equal(getRateLimitStatus(email, baseTime + 10_000).limited, false);
 });
 
-test('staff RBAC enforces least-privilege permissions and route checks', async () => {
-  resetDatabaseForTests();
+test('staff RBAC enforces least-privilege permissions and portal routes without Super Admin', () => {
+  assert.equal(getPortalHomeRoute('STUDENT'), '/student');
+  assert.equal(getPortalHomeRoute('STAFF'), '/staff');
 
-  // Finance staff
-  const fin = await signIn('finance.demo@example.com', 'DemoStaff123!');
-  assert.equal(fin.ok, true);
-  assert.equal(canAccessStaffRoute(fin.session, '/staff/fees'), true);
-  assert.equal(canAccessStaffRoute(fin.session, '/staff/results'), false);
-  assert.equal(canAccessStaffRoute(fin.session, '/staff/documents'), false);
-  assert.equal(checkStaffRouteAccess('/staff/results').allowed, false);
-  await signOut();
+  const makeStaff = (staffGroup: SessionUser['staffGroup']): SessionUser => ({
+    accountId: `uid-${staffGroup}`,
+    email: 'staff@example.com',
+    fullName: 'Staff User',
+    role: 'STAFF',
+    staffGroup,
+    permissions: getPermissionsForRole('STAFF', staffGroup),
+  });
 
-  // Examination staff
-  const exam = await signIn('exam.demo@example.com', 'DemoStaff123!');
-  assert.equal(exam.ok, true);
-  assert.equal(canAccessStaffRoute(exam.session, '/staff/results'), true);
-  assert.equal(canAccessStaffRoute(exam.session, '/staff/fees'), false);
-  assert.equal(hasPermission(exam.session, 'results.publish'), true);
-  assert.equal(hasPermission(exam.session, 'fees.read'), false);
-  await signOut();
+  const finance = makeStaff('FINANCE');
+  assert.equal(canAccessStaffRoute(finance, '/staff/fees'), true);
+  assert.equal(canAccessStaffRoute(finance, '/staff/results'), false);
+  assert.equal(canAccessStaffRoute(finance, '/staff/documents'), false);
 
-  // Student Office staff search
-  const so = await signIn('staff.demo@example.com', 'DemoStaff123!');
-  assert.equal(so.ok, true);
-  assert.deepEqual(
-    getPermissionsForRole('STAFF', 'STUDENT_OFFICE'),
-    STAFF_GROUP_PERMISSIONS.STUDENT_OFFICE
-  );
-  const searchRes = await db.searchStudents('AVU-DEMO-24-CSE-001');
-  assert.equal(searchRes.rows.length, 1);
-  assert.equal(searchRes.rows[0].fullName, 'Aarav Mehta');
-  await signOut();
-  assert.equal(getCurrentSession(), null);
+  const exam = makeStaff('EXAMINATION');
+  assert.equal(canAccessStaffRoute(exam, '/staff/results'), true);
+  assert.equal(canAccessStaffRoute(exam, '/staff/fees'), false);
+  assert.equal(hasPermission(exam, 'results.publish'), true);
+  assert.equal(hasPermission(exam, 'fees.read'), false);
+
+  const so = makeStaff('STUDENT_OFFICE');
+  assert.deepEqual(so.permissions, STAFF_GROUP_PERMISSIONS.STUDENT_OFFICE);
+  assert.equal(hasPermission(so, 'audit.read'), true);
+  assert.equal(hasPermission(so, 'fees.write'), false);
+  assert.equal(hasPermission(so, 'results.publish'), false);
 });
 
 test('search query validation enforces 64 char limit and audit logs never store passwords', () => {
@@ -205,7 +206,7 @@ test('search query validation enforces 64 char limit and audit logs never store 
   assert.equal(sanitizeSearchQuery('Aarav').valid, true);
   assert.equal(sanitizeSearchQuery('x'.repeat(65)).valid, false);
 
-  const state = loadDatabase();
+  const state = createSeedDatabase();
   for (const log of state.auditLogs) {
     assert.ok(!log.detail.includes('DemoStudent123!'));
     assert.ok(!log.detail.includes('DemoStaff123!'));

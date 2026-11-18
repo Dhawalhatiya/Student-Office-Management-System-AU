@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Bell, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../db/db';
+import { formatReadableFirestoreError } from '../../firebase/errors';
 import type { Notification } from '../../types/domain';
 import { formatDateTime } from '../../utils/format';
 
@@ -20,7 +21,7 @@ export function StudentNotifications() {
       setError(null);
       await refreshUnreadCount();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load notifications.');
+      setError(formatReadableFirestoreError(err, 'Unable to load notifications.'));
     } finally {
       setLoading(false);
     }

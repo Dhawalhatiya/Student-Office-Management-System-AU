@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
+import { GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { DemoFooter } from '../components/DemoFooter';
 import { useAuth } from '../context/AuthContext';
 import { DEMO_ACCOUNTS_DISPLAY } from '../data/seed';
+import { seedDemoDataOnce } from '../db/seedFirestore';
+import { firebaseAuth } from '../firebase/config';
+import { formatReadableFirestoreError } from '../firebase/errors';
 import { validateEmail } from '../utils/calculations';
 
 export function LoginPage() {
   const [searchParams] = useSearchParams();
   const portalParam = searchParams.get('portal');
   const isStaffHint = portalParam === 'staff';
+  const isDev = Boolean(import.meta.env.DEV);
 
   const { session, signIn } = useAuth();
   const navigate = useNavigate();
@@ -18,6 +23,11 @@ export function LoginPage() {
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [seeding, setSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+  const [seedError, setSeedError] = useState<string | null>(null);
+  const [seedDone, setSeedDone] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -60,6 +70,64 @@ export function LoginPage() {
     setFormError(null);
   };
 
+  const handleLoadDemoData = async () => {
+    if (!isDev) return;
+    setSeeding(true);
+    setSeedMessage(null);
+    setSeedError(null);
+    let usedBootstrapPopup = false;
+
+    try {
+      if (!firebaseAuth.currentUser) {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        await signInWithPopup(firebaseAuth, provider);
+        usedBootstrapPopup = true;
+      }
+
+      const res = await seedDemoDataOnce();
+      setSeedMessage(res.message);
+      setSeedDone(true);
+      setFormError(null);
+    } catch (err: unknown) {
+      const code =
+        typeof err === 'object' && err !== null && 'code' in err
+          ? String((err as { code?: unknown }).code)
+          : '';
+      if (code === 'auth/operation-not-allowed') {
+        setSeedError(
+          'Enable Email/Password sign-in in Firebase Console (Authentication -> Sign-in method) before creating the 5 demo users.'
+        );
+      } else if (code === 'auth/popup-closed-by-user') {
+        setSeedError('Admin Google sign-in was cancelled before loading demo data.');
+      } else if (code === 'auth/popup-blocked') {
+        setSeedError(
+          'Browser blocked the admin Google sign-in popup. Allow popups for this site or open the preview URL in a new tab and click Load demo data again.'
+        );
+      } else if (code === 'auth/unauthorized-domain') {
+        setSeedError(
+          `Add "${window.location.hostname}" under Firebase Console -> Authentication -> Settings -> Authorized domains, then click Load demo data again.`
+        );
+      } else {
+        setSeedError(
+          formatReadableFirestoreError(
+            err,
+            'Unable to load demo data. Ensure you sign in with the authorized project developer account.'
+          )
+        );
+      }
+    } finally {
+      if (usedBootstrapPopup && firebaseAuth.currentUser) {
+        try {
+          await firebaseSignOut(firebaseAuth);
+        } catch {
+          // Ignore cleanup signout failure
+        }
+      }
+      setSeeding(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-[#f8faf7] text-[#17221c]">
       <header className="border-b border-[#dbe4de] bg-white">
@@ -94,7 +162,17 @@ export function LoginPage() {
               role="alert"
               className="mt-5 rounded-lg border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-sm text-[#b91c1c]"
             >
-              {formError}
+              <p>{formError}</p>
+              {isDev && !seedDone && formError.includes('Load demo data') && (
+                <button
+                  type="button"
+                  onClick={() => void handleLoadDemoData()}
+                  disabled={seeding}
+                  className="mt-2.5 rounded-md border border-[#185a39] bg-white px-3 py-1.5 text-xs font-semibold text-[#185a39] hover:bg-[#eef6f0] disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#185a39]"
+                >
+                  {seeding ? 'Loading demo data...' : 'Load demo data now'}
+                </button>
+              )}
             </div>
           )}
 
@@ -188,6 +266,41 @@ export function LoginPage() {
               </li>
             ))}
           </ul>
+
+          {isDev && (
+            <div className="mt-5 rounded-lg border border-[#dbe4de] bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-[#17221c]">
+                    First-time Firestore setup (development only)
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#5a6a61]">
+                    Admin-only action that creates the 5 Firebase Auth demo users and writes the fictional Firestore dataset once.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleLoadDemoData()}
+                  disabled={seeding || seedDone}
+                  className="rounded-lg border border-[#185a39] bg-white px-3.5 py-2 text-xs font-semibold text-[#185a39] transition-colors hover:bg-[#eef6f0] disabled:opacity-55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#185a39] whitespace-nowrap"
+                >
+                  {seeding ? 'Loading demo data...' : seedDone ? 'Demo data loaded' : 'Load demo data'}
+                </button>
+              </div>
+
+              {seedMessage && (
+                <p role="status" className="mt-3 rounded-md border border-[#d9ebde] bg-[#eef6f0] px-3 py-2 text-xs font-medium text-[#0e3623]">
+                  {seedMessage}
+                </p>
+              )}
+
+              {seedError && (
+                <p role="alert" className="mt-3 rounded-md border border-[#fecaca] bg-[#fef2f2] px-3 py-2 text-xs text-[#b91c1c]">
+                  {seedError}
+                </p>
+              )}
+            </div>
+          )}
         </aside>
       </main>
 

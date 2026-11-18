@@ -4,6 +4,7 @@ import { STAFF_GROUP_LABELS, hasPermission } from '../../auth/permissions';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
 import { db, type StaffDashboardPayload } from '../../db/db';
+import { formatReadableFirestoreError } from '../../firebase/errors';
 import type { Permission } from '../../types/domain';
 import { formatDate, formatDateTime } from '../../utils/format';
 
@@ -41,7 +42,7 @@ export function StaffDashboard() {
       })
       .catch((err) => {
         if (active) {
-          setError(err instanceof Error ? err.message : 'Unable to load staff dashboard.');
+          setError(formatReadableFirestoreError(err, 'Unable to load staff dashboard.'));
         }
       })
       .finally(() => {
