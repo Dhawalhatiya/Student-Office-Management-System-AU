@@ -1,0 +1,6 @@
+{
+  "name": "Student Office Management System",
+  "description": "Avantika University academic portal demo for student records, fees, examination results, documents, and administrative requests.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
