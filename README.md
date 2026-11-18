@@ -48,15 +48,19 @@ SOMS provides a centralised portal where students can access their student-facin
 
 ---
 
-## 🖥️ Application Preview
+## 📸 Screenshots
 
-The repository includes the following visual assets:
+### Landing Page
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/Dhawalhatiya/Student-Office-Management-System-AU/main/public/assets/aistudio/image_1f116218.png" alt="Student Office Management System preview 1" width="100%">
-  <br><br>
-  <img src="https://raw.githubusercontent.com/Dhawalhatiya/Student-Office-Management-System-AU/main/public/assets/aistudio/image_c0bf3e08.png" alt="Student Office Management System preview 2" width="100%">
-</div>
+![SOMS Landing Page](src/screenshots/landing-page.png)
+
+### Student Dashboard
+
+![Student Dashboard](src/screenshots/student-dashboard.png)
+
+### Administrative Staff Dashboard
+
+![Staff Dashboard](src/screenshots/staff-dashboard.png)
 
 ---
 
