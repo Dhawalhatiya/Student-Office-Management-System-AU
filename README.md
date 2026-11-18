@@ -2,348 +2,328 @@
 
 # 🎓 Student Office Management System
 
-### A Centralized Portal for Student Services and University Administration
+### A Digital Student Services & University Administration Portal
+
+A centralized web application concept designed to make student services and administrative workflows more accessible, organised, and efficient.
 
 <p>
-  <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" alt="Next.js">
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React">
-  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white" alt="Prisma">
-  <img src="https://img.shields.io/badge/SQLite-Database-003B57?logo=sqlite&logoColor=white" alt="SQLite">
-  <img src="https://img.shields.io/badge/Project-Academic-orange" alt="Academic Project">
+  <a href="https://soms-au.ai.studio/"><strong>🌐 Open Live Application</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/Dhawalhatiya/Student-Office-Management-System-AU"><strong>View Source Code</strong></a>
 </p>
 
-**Simplifying student services through a modern, role-based web application.**
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-Backend-FFCA28?logo=firebase&logoColor=black)
+![Status](https://img.shields.io/badge/Status-Prototype-orange)
 
 </div>
 
 ---
 
-## 📌 About the Project
+## 🌐 Live Demo
 
-The **Student Office Management System (SOMS)** is a web-based application designed to streamline student services and university administrative operations through a centralized digital platform.
+**Try the application:** [https://soms-au.ai.studio/](https://soms-au.ai.studio/)
 
-The system provides separate interfaces for students and administrative staff, enabling users to access relevant information according to their roles and permissions.
+The live link opens the deployed SOMS prototype. Available sections and actions may vary as the project continues to evolve.
 
-Built using modern web technologies, this project establishes the foundation for digitizing academic administration, improving accessibility, and reducing dependence on manual processes.
+---
 
-> **Project Status:** Prototype in active development. Some modules are implemented, while others remain planned or partially implemented.
+## 📖 About the Project
 
-## 🎯 Objectives
+The **Student Office Management System (SOMS)** is an academic full-stack web application prototype designed around the student services and administrative requirements of **Avantika University**.
 
-- Centralize student information and administrative services.
-- Provide secure authentication and role-based access control.
-- Simplify access to student profiles and notifications.
-- Establish a foundation for digital fee, examination, and document workflows.
-- Improve the accessibility and organization of university services.
-- Build a scalable foundation for future academic management features.
+In many educational institutions, students need to contact different departments for information about their academic records, fees, examination results, documents, scholarships, and administrative requests. SOMS aims to bring these services together through one digital interface.
 
-## ✨ Key Features
+The application provides separate experiences for students and authorised administrative staff, with role-aware navigation and protected portal areas.
+
+### Problem Statement
+
+Traditional student-office processes can involve repeated office visits, email communication, disconnected information sources, and delays in tracking requests. These challenges can make routine academic and administrative tasks difficult to follow.
+
+### Proposed Solution
+
+SOMS provides a centralised portal where students can access their student-facing services and staff can work through dedicated administrative interfaces. The prototype demonstrates the foundation of this approach while identifying additional modules for future implementation.
+
+---
+
+## 🖥️ Application Preview
+
+The repository includes the following visual assets:
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Dhawalhatiya/Student-Office-Management-System-AU/main/public/assets/aistudio/image_1f116218.png" alt="Student Office Management System preview 1" width="100%">
+  <br><br>
+  <img src="https://raw.githubusercontent.com/Dhawalhatiya/Student-Office-Management-System-AU/main/public/assets/aistudio/image_c0bf3e08.png" alt="Student Office Management System preview 2" width="100%">
+</div>
+
+---
+
+## ✨ Prototype Features
 
 ### 👨‍🎓 Student Portal
-- Student login and authentication.
-- Personalized student dashboard.
-- Student profile and information views.
-- Notifications and help section.
-- Role-restricted access to student services.
+
+- Student sign-in and authenticated portal access.
+- Personalised student dashboard.
+- Student profile section.
+- Student notifications.
+- Frequently asked questions and help information.
+- Navigation to student service areas.
 
 ### 🏢 Administrative Staff Portal
+
 - Dedicated staff dashboard.
-- Role-based access permissions.
-- Student search functionality.
-- Separate administrative roles for Student Office, Finance, Examination, and Academic departments.
-- Access-controlled administrative interfaces.
+- Role-aware staff access.
+- Student search interface.
+- Staff notifications and settings.
+- Separate staff groups for:
+  - Student Office
+  - Finance
+  - Examination
+  - Academic
 
-### 🔐 Authentication and Security
-- Password hashing.
-- Server-side session management.
-- HTTP-only session cookies.
-- Role-based authorization checks.
-- Input validation and login rate limiting.
-- Audit-event support and security headers.
+### 🔐 Authentication & Access Control
 
-### 🗄️ Database and Backend
-- Prisma ORM for database management.
-- SQLite for local development.
-- Structured database models and relationships.
-- Demo data seeding for testing.
-- API routes and server-side application logic.
+- Firebase Authentication integration.
+- Student and staff role distinction.
+- Protected student and staff routes.
+- Access guards for portal sections.
+- Firestore security rules included in the repository.
 
-### 📸 Screenshots
+### 🧩 Planned / Placeholder Modules
 
-### Landing Page
+The interface also provides a foundation for additional services. The presence of a navigation item or placeholder screen does **not** mean that the complete workflow is production-ready.
 
-![SOMS Landing Page](src/screenshots/landing-page.png)
+These areas are intended for further development:
 
-### Student Dashboard
+- Fee management and payment tracking.
+- Examination results and academic records.
+- Document submission and verification.
+- Scholarship applications.
+- Student requests and complaint tracking.
+- Administrative reports and exports.
+- AI-assisted administrative support.
 
-![Student Dashboard](src/screenshots/student-dashboard.png)
-
-### Administrative Staff Dashboard
-
-![Staff Dashboard](src/screenshots/staff-dashboard.png)
-
-## 🛠️ Tech Stack
-
-| Technology | Purpose |
-|---|---|
-| Next.js | Full-stack React framework |
-| React | User interface development |
-| TypeScript | Type-safe application development |
-| Tailwind CSS | Styling and responsive UI |
-| Prisma ORM | Database access and schema management |
-| SQLite | Local development database |
-| Zod | Input validation |
-| bcryptjs | Password hashing |
-| Lucide React | Icons |
+---
 
 ## 👥 User Roles
 
-The system is designed around different user roles with separate access permissions.
-
-| Role | Primary Responsibility |
+| Role | Intended Access |
 |---|---|
-| Student | Access personal information, dashboard, and notifications |
-| Student Office | Student administration and service workflows |
-| Finance | Fee-related administrative operations |
-| Examination | Examination and result-related operations |
-| Academic | Academic information and related workflows |
+| Student | Personal dashboard, profile, notifications, and student services |
+| Student Office Staff | Student administration and service-related workflows |
+| Finance Staff | Fee-related information and workflows |
+| Examination Staff | Examination and result-related workflows |
+| Academic Staff | Academic information and related workflows |
 
-Access to individual features depends on the permissions implemented for each role.
+Access is controlled by the role and permissions implemented in the application.
 
-## 🚀 Getting Started
+---
 
-Follow these instructions to run the project locally.
+## 🛠️ Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| React 19 | Component-based user interface |
+| TypeScript | Type-safe application development |
+| Vite | Development server and build tooling |
+| Tailwind CSS 4 | Styling and responsive layouts |
+| Firebase Authentication | User authentication |
+| Cloud Firestore | Application data storage |
+| React Router | Client-side routing |
+| Lucide React | Interface icons |
+| Motion | UI transitions and animations |
+| Google GenAI SDK | Foundation for AI-related functionality |
+
+---
+
+## 🚀 Run Locally
+
+Follow these steps to run the project on your computer.
 
 ### Prerequisites
 
-Install the following software:
+Install:
 
 - [Node.js](https://nodejs.org/)
 - [Git](https://git-scm.com/)
 - [Visual Studio Code](https://code.visualstudio.com/) (recommended)
 
-npm is included with Node.js.
-
-### 1. Clone the Repository
-
-Replace `YOUR-USERNAME` with your GitHub username.
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Dhawalhatiya/student-office-management-system.git
+git clone https://github.com/Dhawalhatiya/Student-Office-Management-System-AU.git
 ```
 
-Navigate to the project directory:
+Move into the project folder:
 
 ```bash
-cd student-office-management-system
+cd Student-Office-Management-System-AU
 ```
 
-If the application is inside a subfolder, navigate into that folder before continuing.
-
-**Run all subsequent commands from the directory containing `package.json`.**
-
-### 2. Install Dependencies
+### 2. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Configure Environment Variables
+### 3. Configure environment variables
 
-Create a local `.env` file from the example configuration.
+Create a local `.env` file using the example file:
 
-**Windows PowerShell:**
-
+**Windows PowerShell**
 ```powershell
 Copy-Item .env.example .env
 ```
 
-**macOS / Linux:**
-
+**macOS / Linux**
 ```bash
 cp .env.example .env
 ```
 
-Review the environment configuration and use the appropriate local development settings.
+Open `.env` and configure the required Firebase and other application settings. Use your own valid development credentials.
 
-Do not upload `.env` or any file containing actual secrets to GitHub.
+> Never commit your actual `.env` file, API keys, service-account credentials, or other secrets to GitHub.
 
-### 4. Set Up the Database
-
-Run the following command to apply the Prisma schema:
-
-```bash
-npm run db:push
-```
-
-This prepares the database structure for the application.
-
-### 5. Insert Demo Data
-
-```bash
-npm run db:seed
-```
-
-This command inserts fictional sample data for local testing.
-
-**Warning:** The seed script clears existing application records before inserting demo data. Do not run it against a database containing information you need to preserve.
-
-### 6. Start the Development Server
+### 4. Start the development server
 
 ```bash
 npm run dev
 ```
 
-Open your browser and navigate to:
+Open the local URL shown in the terminal. The project is configured to use port **3000**.
 
-**http://localhost:3000**
+### 5. Create a production build
 
-The application should now be accessible locally.
-
-Keep the terminal running while using the application. Press `Ctrl + C` to stop the development server.
-
-## 🔑 Demo Login Credentials
-
-The following credentials are intended for local demonstration with the seeded database.
-
-| User Role | Email | Password |
-|---|---|---|
-| Student | `student.demo@example.com` | `DemoStudent123!` |
-| Student Office | `staff.demo@example.com` | `DemoStaff123!` |
-| Finance | `finance.demo@example.com` | `DemoStaff123!` |
-| Examination | `exam.demo@example.com` | `DemoStaff123!` |
-| Academic | `academic.demo@example.com` | `DemoStaff123!` |
-
-**Security Notice:** These are demonstration credentials, not production credentials. Do not use them for a real deployment.
-
-## 📂 Project Structure
-
-```text
-student-office-management-system/
-├── prisma/
-│   ├── schema.prisma
-│   └── seed.ts
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── login/
-│   │   ├── student/
-│   │   ├── staff/
-│   │   ├── actions.ts
-│   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── components/
-│   ├── lib/
-│   └── middleware.ts
-├── tests/
-├── docs/
-├── .env.example
-├── .gitignore
-├── package.json
-└── README.md
+```bash
+npm run build
 ```
 
-*The exact structure may vary depending on the current version of the project.*
+To preview the production build locally:
 
-## 📊 Implementation Status
+```bash
+npm run preview
+```
 
-| Module | Status |
+---
+
+## 📁 Project Structure
+
+```text
+Student-Office-Management-System-AU/
+├── public/
+│   └── assets/
+│       └── aistudio/
+├── scripts/
+├── src/
+│   ├── auth/
+│   ├── components/
+│   ├── context/
+│   ├── data/
+│   ├── db/
+│   ├── firebase/
+│   ├── pages/
+│   │   ├── staff/
+│   │   └── student/
+│   ├── types/
+│   ├── utils/
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── .env.example
+├── firebase-applet-config.json
+├── firebase-blueprint.json
+├── firestore.rules
+├── index.html
+├── package.json
+├── security_spec.md
+├── tsconfig.json
+└── vite.config.ts
+```
+
+---
+
+## 📊 Development Status
+
+SOMS is an evolving academic prototype. The following distinction is important:
+
+| Area | Current Representation |
 |---|---|
-| Landing Page | Implemented |
-| Login and Authentication | Implemented |
-| Session Management | Implemented |
-| Student Dashboard | Implemented |
-| Student Profile | Implemented |
-| Notifications | Implemented |
-| Staff Dashboard | Implemented |
-| Role-Based Access Control | Implemented |
-| Student Search | Implemented |
-| Fee Management | Planned / Placeholder |
-| Result Management | Planned / Placeholder |
-| Document Management | Planned / Placeholder |
-| Scholarship Management | Planned / Placeholder |
-| Student Request Workflows | Planned / Placeholder |
-| Reports and Exports | Planned / Placeholder |
-| AI Data Assistant | Planned / Placeholder |
+| Public landing page | Implemented |
+| Student login and portal access | Implemented in prototype |
+| Student dashboard and profile | Implemented in prototype |
+| Student notifications and FAQs | Implemented in prototype |
+| Staff login and dashboard | Implemented in prototype |
+| Staff role-aware navigation | Implemented in prototype |
+| Student search interface | Implemented in prototype |
+| Fees, results, documents, scholarships | Planned / placeholder workflows |
+| Requests, reports, AI assistant | Planned / placeholder workflows |
 
-The project is under development. Planned features may not yet be available for practical use.
+The status above describes the prototype, not a production deployment or a fully integrated university information system.
 
-## 💻 Available Commands
+---
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the development server |
-| `npm run build` | Build the application for production |
-| `npm start` | Start the built application |
-| `npm run db:push` | Apply the database schema |
-| `npm run db:seed` | Insert demo data |
-| `npm run db:reset` | Reset and reseed the database |
-| `npm test` | Run the test suite |
-| `npm run typecheck` | Run TypeScript type checking |
-| `npm run test:http` | Run HTTP tests against a running server |
+## 🔒 Security & Responsible Use
 
-**Caution:** `npm run db:reset` is destructive and can erase existing database records.
+The project includes Firebase authentication and Firestore security-rule configuration. However, a prototype should not be treated as a production-ready system for confidential university records.
 
-## 🔒 Security Considerations
+Before real institutional use, the application would require:
 
-The project includes foundational security mechanisms, such as password hashing, server-side sessions, permission checks, input validation, and login rate limiting.
+- A complete security review of authentication and authorisation.
+- Verification and testing of Firestore security rules.
+- Production environment and secret management.
+- Data backup, recovery, and retention policies.
+- Privacy safeguards for student and financial information.
+- Accessibility, performance, and cross-device testing.
 
-Before using the system in a real university environment, additional work is required, including:
+Use fictional or test data during development and demonstrations. Do not enter sensitive personal, academic, or financial information into an unapproved deployment.
 
-- Production-grade environment configuration.
-- HTTPS and secure deployment settings.
-- Comprehensive security testing.
-- Database backup and recovery procedures. 
-- Appropriate privacy and data-retention policies.
-- Protection of confidential student and financial information.
-- Review of authorisation rules and audit logging.
+---
 
-The current prototype should use fictional data only.
+## 🔮 Future Scope
 
-## 🗺️ Future Enhancements
+Potential future improvements include:
 
-The following features are potential areas for future development:
-
-- Complete student record management.
-- Online fee tracking and payment verification.
-- Examination result management and publication.
-- Digital document submission and verification.
-- Scholarship application and administration.
-- Student requests and complaint tracking.
-- Administrative reports and data exports.
+- Complete end-to-end fee management and payment verification.
+- Examination result publication and academic record management.
+- Secure document upload, review, and verification.
+- Scholarship application and approval workflows.
+- Student request submission with status tracking.
+- Administrative analytics, reports, and exports.
 - Email and in-app notifications.
-- AI-assisted data analysis and administrative insights.
-- Improved mobile responsiveness and accessibility.
+- AI-assisted information retrieval for authorised staff.
+- Improved accessibility and mobile experience.
 
-These enhancements represent future development goals rather than completed functionality.
+---
 
-## 🤝 Contributing
+## 🤝 Feedback & Contributions
 
-Contributions, suggestions, and constructive feedback are welcome.
+Suggestions, issue reports, and contributions are welcome.
 
-If you would like to contribute:
-
-1. Fork the repository.
+1. Fork this repository.
 2. Create a feature branch.
-3. Make your changes.
-4. Test the updated functionality.
-5. Submit a pull request describing your changes.
+3. Make and test your changes.
+4. Submit a pull request with a clear description.
 
-Please avoid committing credentials, environment files, local databases, or personal information.
+Please do not include private credentials, confidential student records, or personal information in commits or issue reports.
+
+---
 
 ## 📄 License
 
-No license has been specified for this project yet. Unless a license is added, the default copyright rules apply and reuse or redistribution is not automatically permitted.
+No open-source license has currently been specified. Unless a license is added, the repository remains subject to the default copyright rules.
 
 ---
 
 <div align="center">
 
-**Student Office Management System**
+### Student Office Management System
 
-* Digitising Student Services. Simplifying Administration.*
+**Digitising Student Services. Simplifying Administration.**
 
-Developed as an academic software project.
+Developed as an academic software project at **Avantika University**.
+
+[Live Application](https://soms-au.ai.studio/) · [GitHub Repository](https://github.com/Dhawalhatiya/Student-Office-Management-System-AU)
 
 </div>
