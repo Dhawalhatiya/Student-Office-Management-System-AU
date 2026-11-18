@@ -52,15 +52,15 @@ SOMS provides a centralised portal where students can access their student-facin
 
 ### Landing Page
 
-![SOMS Landing Page](src/screenshots/landing-page.png)
+![SOMS Landing Page](public/assets/aistudio/landing-page.png)
 
 ### Student Dashboard
 
-![Student Dashboard](src/screenshots/student-dashboard.png)
+![Student Dashboard](public/assets/aistudio/student-dashboard.png)
 
 ### Administrative Staff Dashboard
 
-![Staff Dashboard](src/screenshots/staff-dashboard.png)
+![Staff Dashboard](public/assets/aistudio/staff-dashboard.png)
 
 ---
 
